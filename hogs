@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+
+import os
+import subprocess
+import shlex
+import configparser
+
+def ps_aux(sort_function=lambda x: x["pid"]):
+    def ps_iter():
+        for l in subprocess.getoutput("ps aux").split("\n")[1:]:
+            x, l = l, l.split()[:10]
+            for i in range(10):
+                x = x[x.index(x.split()[0]) + len(x.split()[0]):].lstrip()
+            yield {"user": l[0], "pid": int(l[1]), "cpu": float(l[2]),
+                "memory": float(l[3]), "vsz": int(l[4]), "rss": int(l[5]),
+                "tty": l[6], "stat": l[7], "start": l[8], "time": l[9],
+                "command": x}
+    return list(sorted(ps_iter(), key=sort_function))
+
+c = ps_aux(lambda x: x["cpu"])
+m = ps_aux(lambda x: x["memory"])
+for i in m:
+    if i["pid"] not in (j["pid"] for j in c):
+        c.append(i)
+c = sorted(c, key=lambda x: x["cpu"])
+c = [i for i in c if i["cpu"] > 2 or i["memory"] > 2]
+if c:
+    print("     PID   %CPU   %MEM    CMD")
+for i in c:
+    print(str(i["pid"]).rjust(8), "%6.1f" % i["cpu"], "%6.1f" % i["memory"],
+        "   " + shlex.split(i["command"])[0])

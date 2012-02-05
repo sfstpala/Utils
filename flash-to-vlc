@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+import os
+import string
+import subprocess
+
+def lsof_deleted():
+    for i in subprocess.getoutput("lsof -bPn").split("\n"):
+        if i.endswith(" (deleted)"):
+            x, fn = i.split()[:-1], i[:-len(" (deleted)")]
+            pid, fd = x[1], x[3].rstrip(string.ascii_letters)
+            for j in x[:8]:
+                fn = fn[len(j):].lstrip()
+            fd = "/proc/{}/fd/{}".format(pid, fd)
+            if fn.startswith("/tmp/Flash"):
+                yield fd
+
+
+files = ' '.join(lsof_deleted())
+if files:
+    exit(os.system("vlc " + files))
+print("no files")
